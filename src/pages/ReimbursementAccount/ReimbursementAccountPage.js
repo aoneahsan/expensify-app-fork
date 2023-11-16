@@ -134,7 +134,6 @@ class ReimbursementAccountPage extends React.Component {
                 // this.props.reimbursementAccount.isLoading just changed to false. From now on, it makes sense to run the code
                 // below updating states and the route, and this will happen in the next react lifecycle.
                 this.setState({
-                    shouldShowContinueSetupButton: this.getShouldShowContinueSetupButtonInitialValue(),
                     hasACHDataBeenLoaded: true,
                 });
             }
@@ -194,6 +193,8 @@ class ReimbursementAccountPage extends React.Component {
         switch (step) {
             case CONST.BANK_ACCOUNT.STEP.BANK_ACCOUNT:
                 return ['routingNumber', 'accountNumber', 'bankName', 'plaidAccountID', 'plaidAccessToken', 'isSavings'];
+            case CONST.BANK_ACCOUNT.STEP.REQUESTOR:
+                return ['firstName', 'lastName', 'dob', 'ssnLast4', 'requestorAddressStreet', 'requestorAddressCity', 'requestorAddressState', 'requestorAddressZipCode'];
             case CONST.BANK_ACCOUNT.STEP.COMPANY:
                 return [
                     'companyName',
@@ -208,8 +209,6 @@ class ReimbursementAccountPage extends React.Component {
                     'incorporationDate',
                     'incorporationState',
                 ];
-            case CONST.BANK_ACCOUNT.STEP.REQUESTOR:
-                return ['firstName', 'lastName', 'dob', 'ssnLast4', 'requestorAddressStreet', 'requestorAddressCity', 'requestorAddressState', 'requestorAddressZipCode'];
             default:
                 return [];
         }
@@ -258,10 +257,10 @@ class ReimbursementAccountPage extends React.Component {
         switch (lodashGet(this.props.route, ['params', 'stepToOpen'], '')) {
             case 'new':
                 return CONST.BANK_ACCOUNT.STEP.BANK_ACCOUNT;
-            case 'company':
-                return CONST.BANK_ACCOUNT.STEP.COMPANY;
             case 'personal-information':
                 return CONST.BANK_ACCOUNT.STEP.REQUESTOR;
+            case 'company':
+                return CONST.BANK_ACCOUNT.STEP.COMPANY;
             case 'contract':
                 return CONST.BANK_ACCOUNT.STEP.ACH_CONTRACT;
             case 'validate':
@@ -279,10 +278,10 @@ class ReimbursementAccountPage extends React.Component {
      */
     getRouteForCurrentStep(currentStep) {
         switch (currentStep) {
-            case CONST.BANK_ACCOUNT.STEP.COMPANY:
-                return 'company';
             case CONST.BANK_ACCOUNT.STEP.REQUESTOR:
                 return 'personal-information';
+            case CONST.BANK_ACCOUNT.STEP.COMPANY:
+                return 'company';
             case CONST.BANK_ACCOUNT.STEP.ACH_CONTRACT:
                 return 'contract';
             case CONST.BANK_ACCOUNT.STEP.VALIDATION:
@@ -346,15 +345,15 @@ class ReimbursementAccountPage extends React.Component {
                     Navigation.goBack(backTo);
                 }
                 break;
-            case CONST.BANK_ACCOUNT.STEP.COMPANY:
-                BankAccounts.goToWithdrawalAccountSetupStep(CONST.BANK_ACCOUNT.STEP.BANK_ACCOUNT, {subStep: CONST.BANK_ACCOUNT.SUBSTEP.MANUAL});
-                break;
             case CONST.BANK_ACCOUNT.STEP.REQUESTOR:
                 if (shouldShowOnfido) {
                     BankAccounts.clearOnfidoToken();
                 } else {
                     BankAccounts.goToWithdrawalAccountSetupStep(CONST.BANK_ACCOUNT.STEP.COMPANY);
                 }
+                break;
+            case CONST.BANK_ACCOUNT.STEP.COMPANY:
+                BankAccounts.goToWithdrawalAccountSetupStep(CONST.BANK_ACCOUNT.STEP.BANK_ACCOUNT, {subStep: CONST.BANK_ACCOUNT.SUBSTEP.MANUAL});
                 break;
             case CONST.BANK_ACCOUNT.STEP.ACH_CONTRACT:
                 BankAccounts.clearOnfidoToken();
@@ -405,14 +404,14 @@ class ReimbursementAccountPage extends React.Component {
         // Prevent the full-page blocking offline view from being displayed for these steps if the device goes offline.
         const shouldShowOfflineLoader = !(
             this.props.network.isOffline &&
-            _.contains([CONST.BANK_ACCOUNT.STEP.BANK_ACCOUNT, CONST.BANK_ACCOUNT.STEP.COMPANY, CONST.BANK_ACCOUNT.STEP.REQUESTOR, CONST.BANK_ACCOUNT.STEP.ACH_CONTRACT], currentStep)
+            _.contains([CONST.BANK_ACCOUNT.STEP.BANK_ACCOUNT, CONST.BANK_ACCOUNT.STEP.REQUESTOR, CONST.BANK_ACCOUNT.STEP.COMPANY, CONST.BANK_ACCOUNT.STEP.ACH_CONTRACT], currentStep)
         );
 
         // Show loading indicator when page is first time being opened and props.reimbursementAccount yet to be loaded from the server
         // or when data is being loaded. Don't show the loading indicator if we're offline and restarted the bank account setup process
         // On Android, when we open the app from the background, Onfido activity gets destroyed, so we need to reopen it.
         if ((!this.state.hasACHDataBeenLoaded || isLoading) && shouldShowOfflineLoader && (shouldReopenOnfido || !this.requestorStepRef.current)) {
-            const isSubmittingVerificationsData = _.contains([CONST.BANK_ACCOUNT.STEP.COMPANY, CONST.BANK_ACCOUNT.STEP.REQUESTOR, CONST.BANK_ACCOUNT.STEP.ACH_CONTRACT], currentStep);
+            const isSubmittingVerificationsData = _.contains([CONST.BANK_ACCOUNT.STEP.REQUESTOR, CONST.BANK_ACCOUNT.STEP.COMPANY, CONST.BANK_ACCOUNT.STEP.ACH_CONTRACT], currentStep);
             return (
                 <ReimbursementAccountLoadingIndicator
                     isSubmittingVerificationsData={isSubmittingVerificationsData}
@@ -478,18 +477,6 @@ class ReimbursementAccountPage extends React.Component {
             );
         }
 
-        if (currentStep === CONST.BANK_ACCOUNT.STEP.COMPANY) {
-            return (
-                <CompanyStep
-                    reimbursementAccount={this.props.reimbursementAccount}
-                    reimbursementAccountDraft={this.props.reimbursementAccountDraft}
-                    onBackButtonPress={this.goBack}
-                    getDefaultStateForField={this.getDefaultStateForField}
-                    policyID={policyID}
-                />
-            );
-        }
-
         if (currentStep === CONST.BANK_ACCOUNT.STEP.REQUESTOR) {
             const shouldShowOnfido = this.props.onfidoToken && !achData.isOnfidoSetupComplete;
             return (
@@ -499,6 +486,18 @@ class ReimbursementAccountPage extends React.Component {
                     onBackButtonPress={this.goBack}
                     shouldShowOnfido={Boolean(shouldShowOnfido)}
                     getDefaultStateForField={this.getDefaultStateForField}
+                />
+            );
+        }
+
+        if (currentStep === CONST.BANK_ACCOUNT.STEP.COMPANY) {
+            return (
+                <CompanyStep
+                    reimbursementAccount={this.props.reimbursementAccount}
+                    reimbursementAccountDraft={this.props.reimbursementAccountDraft}
+                    onBackButtonPress={this.goBack}
+                    getDefaultStateForField={this.getDefaultStateForField}
+                    policyID={policyID}
                 />
             );
         }

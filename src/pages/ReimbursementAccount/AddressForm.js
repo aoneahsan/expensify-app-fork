@@ -92,7 +92,7 @@ const defaultProps = {
 };
 
 function AddressForm(props) {
-    const styles = useThemeStyles();
+    const styles = {};
     return (
         <>
             <View>
