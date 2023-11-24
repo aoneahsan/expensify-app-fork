@@ -65,7 +65,7 @@ For an M1 Mac, read this [SO](https://stackoverflow.com/questions/64901180/how-t
     * For help with MapBox token, you can see [this Slack thread](https://expensify.slack.com/archives/C01GTK53T8Q/p1692740856745279?thread_ts=1692322511.804599&cid=C01GTK53T8Q)
 * To install the iOS dependencies, run: `npm install && npm run pod-install`
 * If you are an Expensify employee and want to point the emulator to your local VM, follow [this](https://stackoverflow.com/c/expensify/questions/7699)
-* To run a on a **Development Simulator**: `npm run ios`
+* To run the app on a **Development Simulator**: `npm run ios`
 * Changes applied to Javascript will be applied automatically, any changes to native code will require a recompile
 
 ## Running the Android app 🤖
